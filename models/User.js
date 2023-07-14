@@ -21,18 +21,12 @@ const UserSchema = new mongoose.Schema({
   emailVerified: {
     type: Boolean,
     default: false
-  }
+  },
+  resetPasswordToken: String,
+  resetPasswordTokenExpiry: Date
 });
 
 // Hash the user's password before saving it to the database
-UserSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-
-  next();
-});
 
 // Add a method to the User model to compare a given password with the hashed password in the database
 UserSchema.methods.comparePassword = async function (candidatePassword) {
