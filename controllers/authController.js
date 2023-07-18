@@ -3,14 +3,19 @@ const bcrypt = require('bcrypt');
 const session = require('express-session');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
+const { google } = require('googleapis');
+const { OAuth2Client } = require('google-auth-library');
+
+
 
 // Set up nodemailer with your email account credentials
+
 const transporter = nodemailer.createTransport({
-  host: 'smtp.ethereal.email',
+  host: 'smtp.gmail.com',
   port: 587,
   auth: {
-      user: 'stewart.lakin@ethereal.email',
-      pass: 'Jx1hVYkhvuYFtACj7V'
+      user: 'nikhil.212708111@vcet.edu.in',
+      pass: 'hzhquqgmcajxiqkz'
   }
 });
 
@@ -18,7 +23,7 @@ exports.register = async (req, res) => {
   try {
     // Get user data from the request body
     const { username, email, password } = req.body;
-   
+
     // Check if a user with the same email already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -28,27 +33,40 @@ exports.register = async (req, res) => {
     // Create a new user document in the database
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-    const user = new User({ username, email, password:hashedPassword });
-    await user.save();
+    const user = new User({ username, email, password: hashedPassword });
+
+    // Save the user document in the database
+    user.save();
 
     // Generate a random OTP and store it in the database
     const otp = Math.floor(100000 + Math.random() * 900000);
     user.otp = otp;
-    await user.save();
 
-    // Send the OTP to the user's email address using nodemailer
-    await transporter.sendMail({
-      from: 'Adarsh7825@gmail.com',
+    // Send the OTP to the user's email address using the Gmail API
+    const mailOptions = {
+      from: 'nikhil.212708111@vcet.edu.in',
       to: email,
-      subject: 'OTP for Email Verification',
-      text: `Your OTP is ${otp}`
-    });
+      subject: 'Email Verification',
+      text: `Welcom to Adarsh,Sachin and Nikhil website . Your OTP is ${otp}`,
+    };
 
-    res.status(201).json({ message: 'User registered successfully' });
+    // Send the email using Nodemailer
+    transporter.sendMail(mailOptions, async(error, info) => {
+      if (error) {
+        console.error('Error sending email:', error);
+        return res.status(500).json({ message: 'Failed to send email' });
+      }
+      console.log('Email sent:', info.response);
+      
+      
+      res.status(201).json({ message: 'User registered successfully' });
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
+
 
 exports.verifyOTP = async (req, res) => {
   try {
@@ -117,9 +135,9 @@ exports.forgotPassword = async (req, res) => {
     await user.save();
 
     // Send the password reset link to the user's email address using nodemailer
-    const resetUrl = `http://localhost:3000/auth/reset-password?token=${resetToken}`;
+    const resetUrl = `http://localhost:3000/reset-password?token=${resetToken}`;
     await transporter.sendMail({
-      from: 'Adarsh7825@gmail.com',
+      from: 'nikhil.212708111@vcet.edu.in',
       to: email,
       subject: 'Password Reset',
       text: `Click the link to reset your password: ${resetUrl}`,
@@ -133,16 +151,16 @@ exports.forgotPassword = async (req, res) => {
 
 exports.resetPassword = async (req, res) => {
   try {
-    const token=req.query.token;
-    const {  newPassword, confirmPassword } = req.body;
+    const token = req.query.token;
+    const { newPassword, confirmPassword } = req.body;
 
     const user = await User.findOne({
-      resetPasswordToken: token
+      resetPasswordToken: token,
     });
     if (!user) {
       return res.status(400).json({ message: 'Invalid or expired reset token' });
     }
- 
+
     if (newPassword !== confirmPassword) {
       return res.status(400).json({ message: 'Passwords do not match' });
     }
@@ -150,12 +168,22 @@ exports.resetPassword = async (req, res) => {
     // Update the user's password and clear the reset token fields
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
-   
-const userData= await User.findByIdAndUpdate({_id:user._id},{$set:{password:hashedPassword}},{new:true});
-    user.resetPasswordToken = undefined;
-    user.resetPasswordTokenExpiry = undefined;
-    res.status(200).send({msg:"User Password has been reset",data:userData})
-   
+
+    const userData = await User.findByIdAndUpdate(
+      { _id: user._id },
+      {
+        $set: { password: hashedPassword },
+        $unset: { resetPasswordToken: '', resetPasswordTokenExpiry: '' },
+        tokens: { refreshToken: '', accessToken: '' } // Clear the tokens
+      },
+      { new: true }
+    );
+    
+
+    // Use the tokens from the user document for sending emails
+  
+
+    res.status(200).send({ msg: 'User Password has been reset', data: userData });
   } catch (error) {
     console.log('Error occurred:', error);
     res.status(500).json({ message: error.message });

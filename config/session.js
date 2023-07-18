@@ -1,10 +1,10 @@
 const session = require('express-session');
 const MongoDBStore = require('connect-mongodb-session')(session);
 const mongoose = require('mongoose');
-
+const config = require('../secrets/secret.js');
 // Create a MongoDBStore instance
 const store = new MongoDBStore({
-  uri: 'mongodb+srv://mahadiknikhil2508:EVPB13rCxUW4GfiZ@cluster0.t65644e.mongodb.net/userLogin?retryWrites=true&w=majority',
+  uri: config.mongoDBUri,
   collection: 'sessions',
   mongooseConnection: mongoose.connection,
 });
