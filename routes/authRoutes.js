@@ -1,6 +1,7 @@
 const express = require('express');
 const User = require('../models/User');
 const router = express.Router();
+const { body } = require('express-validator');
 const authController = require('../controllers/authController');
 const { OAuth2Client } = require('google-auth-library');
 const credentials = require('../secrets/credentials.json');
@@ -11,8 +12,19 @@ const oauth2Client = new OAuth2Client(
   clientConfig.client_secret,
   clientConfig.redirect_uris
 );
+// validation logic for email and password only for vcet students 
+const isVcetEmail = (value) => {
+  if (value.endsWith('@vcet.edu.in')) {
+    return true;
+  }
+  throw new Error('Only users with the Vidyavardhini domain are allowed to register');
+};
 
-router.post('/register', authController.register);
+const registerValidationRules = [
+  body('email').isEmail().withMessage('Invalid email format').custom(isVcetEmail),
+  body('password').isLength({ min: 8, max: 20 }).withMessage('Password must be between 8 and 20 characters'),
+];
+router.post('/register',registerValidationRules, authController.register);
 router.post('/verify-otp', authController.verifyOTP);
 router.post('/login', authController.login);
 router.post('/logout', authController.logout);

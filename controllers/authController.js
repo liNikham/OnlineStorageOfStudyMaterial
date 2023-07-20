@@ -2,6 +2,7 @@ const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
 const crypto = require('crypto');
+const { validationResult } = require('express-validator');
 const nodemailer = require('nodemailer');
 const { google } = require('googleapis');
 const { OAuth2Client } = require('google-auth-library');
@@ -20,6 +21,10 @@ const transporter = nodemailer.createTransport({
 });
 
 exports.register = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
   try {
     // Get user data from the request body
     const { username, email, password } = req.body;
@@ -129,7 +134,7 @@ exports.forgotPassword = async (req, res) => {
 
     // Generate a unique token for password reset
     const resetToken = crypto.randomBytes(20).toString('hex');
-    console.log(resetToken)
+    // console.log(resetToken)
     user.resetPasswordToken = resetToken;
     user.resetPasswordTokenExpiry = Date.now() + 3600000; // Token expires in 1 hour
     await user.save();
@@ -180,7 +185,7 @@ exports.resetPassword = async (req, res) => {
     );
     
 
-    // Use the tokens from the user document for sending emails
+    
   
 
     res.status(200).send({ msg: 'User Password has been reset', data: userData });
