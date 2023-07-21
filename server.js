@@ -5,7 +5,7 @@ const authRoutes = require('./routes/authRoutes');
 const app = express();
 
 // Connect to the MongoDB database using mongoose
-mongoose.connect('mongodb+srv://mahadiknikhil2508:EVPB13rCxUW4GfiZ@cluster0.t65644e.mongodb.net/userLogin?retryWrites=true&w=majority', {
+mongoose.connect('mongodb+srv://mahadiknikhil2508:@cluster0.t65644e.mongodb.net/userLogin?retryWrites=true&w=majority', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
